@@ -1,21 +1,15 @@
-import requests
+import chromadb
+from chromadb.config import Settings
+try:
+    # Создание клиента
+    chroma_client = chromadb.HttpClient(
+    host='localhost',
+    port='8000',
+    settings=Settings()
+)
+    # Создание коллекции
+    collection = chroma_client.get_or_create_collection(name="collection_name")
+    print(collection)
 
-url = "http://localhost:8000/api/v1/collections"
-payload = {
-        "id": 0,
-        "name": "test",
-        "metadata": {
-            "description": "Default description",
-            "created_by": "system"
-        }
-    }
-
-response = requests.post(url, json=payload)
-
-print(response.status_code)
-print(response.text)
-url = "http://localhost:8000/api/v1/collections/0/add"  # используйте тот же URL
-response = requests.get(url)
-
-print(response.status_code)
-print(response.text)
+except Exception as e:
+    print(f"Произошла ошибка: {e}")
