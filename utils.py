@@ -1,29 +1,26 @@
-import requests
 from sentence_transformers import SentenceTransformer
+import chromadb
+from chromadb.config import Settings
 import io
 
 # Загрузите модель SentenceTransformer
 model = SentenceTransformer('sergeyzh/rubert-tiny-turbo')
 
-def create_collection(collection_id, collection_name, metadata=None):
-    url = "http://localhost:8000/api/v1/collections"
-    if not metadata:
-        metadata = {
-            "description": "Default description",
-            "created_by": "system"
-        }
-    payload = {
-        "id": collection_id,
-        "name": collection_name,
-        "metadata": metadata
-    }
+client = None
+collection = None
 
-    response = requests.post(url, json=payload)
-
-    if response.status_code != 200 and response.status_code != 409:  # 409 означает, что коллекция уже существует
-        raise Exception(f"Failed to create collection in ChromaDB: {response.text}")
-
-    return response.json()
+def initialize_chroma(collection_name):
+    global client, collection
+    client = chromadb.Client(settings=Settings())
+    try:
+        # Попытка получить коллекцию
+        collection = client.get_collection(collection_name)
+    except:
+        # Коллекция не существует, нужно ее создать
+        collection = client.create_collection(
+            name=collection_name,
+            metadata={"description": "Default description", "created_by": "system"}
+        )
 
 def process_pdf(content):
     import pdfplumber
@@ -60,32 +57,14 @@ def get_embedding(text):
     embeddings = model.encode([text])
     return embeddings[0].tolist()
 
-def add_document_to_db(collection_id, document_data, embedding):
-    url = f"http://localhost:8000/api/v1/collections/{collection_id}/add"
-    payload = {
-        "content": document_data,
-        "embedding": embedding
-    }
+def add_document_to_db(document_data, embedding):
+    collection.add(
+        embeddings=[embedding],
+        documents=[document_data],
+        metadatas=[{"source": "upload"}]
+    )
 
-    response = requests.post(url, json=payload)
-
-    if response.status_code != 200:
-        print(f"Payload: {payload}")
-        print(f"Headers: {response.headers}")
-        print(f"Status Code: {response.status_code}")
-        print(f"Response Text: {response.text}")
-        raise Exception(f"Failed to add document to ChromaDB: {response.text}")
-
-    return True
-
-def search_in_db(collection_id, query_text):
+def search_in_db(query_text):
     query_embedding = get_embedding(query_text)
-    url = f"http://localhost:8000/api/v1/collections/{collection_id}/query"
-    payload = {"embedding": query_embedding}
-
-    response = requests.post(url, json=payload)
-
-    if response.status_code != 200:
-        raise Exception(f"Failed to search in ChromaDB: {response.text}")
-
-    return response.json()['results']
+    results = collection.query(query_embedding, num_results=1)
+    return results['results']

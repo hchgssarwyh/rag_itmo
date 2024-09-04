@@ -14,12 +14,13 @@ ENV PATH="/root/.local/bin:$PATH"
 # Копирование конфигурационных файлов Poetry
 COPY pyproject.toml poetry.lock /app/
 
+# Копирование исходного кода приложения
+COPY . .
+
 # Установка зависимостей проекта с новой опцией --only main
 RUN poetry config virtualenvs.create false \
     && poetry install --only main
 
-# Копирование исходного кода приложения
-COPY . .
 
 # Запуск uvicorn
 CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--log-level", "debug"]
