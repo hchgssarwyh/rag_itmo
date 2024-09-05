@@ -2,6 +2,12 @@ import io
 import pdfplumber
 import docx
 
+def chunk_text(text, chunk_size=1000):
+    """
+    Разбивает текст на чанки фиксированного размера.
+    """
+    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+
 def process_pdf(content):
     text = ""
     try:
@@ -41,16 +47,18 @@ def process_document(filename, content):
         raise ValueError("Unsupported document format")
 
 def add_document_to_db(document_data, collection):
-    collection.add(
-        documents=[document_data],
-        metadatas=[{"source": "upload"}],
-        ids=["1"]
-    )
+    document_chunks = chunk_text(document_data)
+    for i, chunk in enumerate(document_chunks):
+        chunk_id = f"{collection.name}-{i+1}"
+        collection.add(
+            documents=[chunk],
+            metadatas=[{"source": "upload", "chunk_id": chunk_id}],
+            ids=[chunk_id]
+        )
 
-def search_in_db(query_text, collection):
+def search_in_db(query_text, collection, num):
     try:
-        results = collection.query(query_texts=[query_text], n_results=1)
-        # Выводим сырые результаты и возвращаем их
+        results = collection.query(query_texts=[query_text], n_results=num)
         return results
     except Exception as e:
         raise e

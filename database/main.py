@@ -90,9 +90,9 @@ async def upload_folder(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/search")
-async def search_document(query: str):
+async def search_document(query: str, num: int):
     try:
-        results = search_in_db(query, collection)
+        results = search_in_db(query, collection, num)
         return {"results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
