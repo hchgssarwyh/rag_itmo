@@ -4,16 +4,19 @@ import docx
 
 def process_pdf(content):
     text = ""
-    with pdfplumber.open(io.BytesIO(content)) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-            
-            tables = page.extract_tables()
-            for table in tables:
-                for row in table:
-                    text += " | ".join(str(cell) for cell in row) + "\n"
+    try:
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+                
+                tables = page.extract_tables()
+                for table in tables:
+                    for row in table:
+                        text += " | ".join(str(cell) for cell in row) + "\n"
+    except Exception as e:
+        raise ValueError(f"Error processing PDF: {e}")
 
     return text
 
